@@ -19,6 +19,7 @@ It is vital that you understand what each Opcode does when writing edits, ILSpy 
 The stack is a collection of values that can be pushed to, or popped from; instructions may push values to and from the stack.\
 TODO:
   - Better outline how this can be manipulated?
+  - Better explain this in general as it is a particularly abstract concept
 
 ### ILCursor
 The `ILCursor` type is the standard way of manipulating `ILContext`, can be initialized directly from the `ILContext` instance provided in edits.
@@ -45,27 +46,52 @@ if (jumpCheckTarget is null)
 }
 ```
 When matching instructions be aware of incoming labels that point to the next instruction, use `ILCursor.MoveAfterLabels` to have the cursor redirect incoming labels to the newly emitted instruction.\
-**Example:**
+**Example:**\
 Say we have the following context:
+
+<table>
+<tr>
+<th>
+C#
+</th>
+<th>
+IL
+</td>
+</tr>
+<tr>
+<td valign="top">  
+
 ```cs
-if (Whatever.Whatever)
+if (Whatever.SomeStaticBool)
 {
     Whatever.Cool0ArgMethod();
 }
 // - Place we want to insert into.
 Whatever.CoolMultipleArgMethod(0, 1, 2);
 ```
-Which is roughly:
+
+</td>
+<td valign="top">
+
 ```
-IL_0000 ldsfld Whatever::Whatever
+// if (Whatever.SomeStaticBool)
+IL_0000 ldsfld Whatever::SomeStaticBool
 IL_0001 brfalse IL_0003
+
+// Whatever.Cool0ArgMethod();
 IL_0002 call void Whatever::Cool0ArgMethod()
 
+// Whatever.CoolMultipleArgMethod(0, 1, 2);
 IL_0003 ldc.i4.0 
 IL_0004 ldc.i4.1
 IL_0005 ldc.i4 2
 IL_0006 call void Whatever::CoolMultipleArgMethod(Int32, Int32, Int32)
 ```
+
+</td>
+</tr>
+</table>
+
 Note the incoming label on `IL_0003`.
 If we were to match like so:
 ```cs
