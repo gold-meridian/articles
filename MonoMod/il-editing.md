@@ -13,7 +13,7 @@ Hooks applied in the manner listed above do NOT have to be unloaded manually.
 ### Instructions/Opcodes
 An Operation Code (Opcode) also called an instruction, specifies what operation to preform.\
 It is vital that you understand what each Opcode does when writing edits, ILSpy gives a tooltip when hovering an instruction and will open documentation when clicked.\
-<img src="ILSpyTooltip">
+<img src="ILSpyTooltip.png">
 
 ### The Stack
 The stack is a collection of values that can be pushed to, or popped from; instructions may push values to and from the stack.\
