@@ -44,6 +44,38 @@ if (jumpCheckTarget is null)
     return;
 }
 ```
+When matching instructions be aware of incoming labels that point to the next instruction, use `ILCursor.MoveAfterLabels` to have the cursor redirect incoming labels to the newly emitted instruction.\
+**Example:**
+Say we have the following context:
+```cs
+if (Whatever.Whatever)
+{
+    Whatever.Cool0ArgMethod();
+}
+// - Place we want to insert into.
+Whatever.CoolMultipleArgMethod(0, 1, 2);
+```
+Which is roughly:
+```
+IL_0000 ldsfld Whatever::Whatever
+IL_0001 brfalse IL_0003
+IL_0002 call void Whatever::Cool0ArgMethod()
+
+IL_0003 ldc.i4.0 
+IL_0004 ldc.i4.1
+IL_0005 ldc.i4 2
+IL_0006 call void Whatever::CoolMultipleArgMethod(Int32, Int32, Int32)
+```
+Note the incoming label on `IL_0003`.
+If we were to match like so:
+```cs
+c.GotoNext(
+    MoveType.Before,
+    i => i.MatchLdcI4(out _)
+);
+```
+we would be placed before `IL_0003`, but any newly emitted instructions would be placed before the label, you can think of this as us emitting inside the `if` statement.
+You can use `ILCursor.MoveAfterLabels` to emit instructions correctly.
 
 ## Limitations
 ### In-lining
