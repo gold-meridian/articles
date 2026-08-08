@@ -1,5 +1,5 @@
 # IL Editing
-IL Editing is the process of editing method's CIL with MonoMod using `ILHook`s, this allows for finer more granular control than standard `Hook`s (commonly referred to as detours) provide.
+IL Editing is the process of editing a method's CIL with MonoMod using `ILHook`s, this allows for finer more granular control than standard `Hook`s (commonly referred to as detours) provide.
 
 tModLoader provides generated events for hooking vanilla methods (usually `On`/`IL_TypeName.MethodName`.)
 If a method is not provided by these events you should use `MonoModHooks.Add`/`Modify`to apply hooks, (`Add` being for detours whilst `Modify` being for IL edits.)\
