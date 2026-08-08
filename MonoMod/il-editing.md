@@ -7,23 +7,27 @@ Hooks applied in the manner listed above do NOT have to be unloaded manually.
 
 Although this guide is targeted at tModLoader mod developers, most information is applicable to all projects that use MonoMod.
 
-## Prerequisites
+# Prerequisites
 - [ILSpy](https://github.com/icsharpcode/ilspy) - Allows for browsing of disassembly, with options to show C# lines above their respective instructions.
 - Familiarity with tModLoader and Terraria's codebase.
 
-## Concepts
-### Instructions/Opcodes
+# Concepts
+## The Stack
+The stack is a collection of values that can be added to (pushed,) or removed from (popped;) instructions may push values to and from the stack.\
+The stack is a first-in, last-out list where the most recently pushed value is the first to be popped.
+
+**TODO:** Further reading
+
+## Instructions/Opcodes
 An Operation Code (Opcode) also called an instruction, specifies what operation to preform.
 
 > [!IMPORTANT]
 > It is vital that you understand what each Opcode does when writing edits, ILSpy gives a tooltip when hovering an instruction and will open documentation when clicked.\
 > <img src="ILSpyTooltip.png">
 
-### The Stack
-The stack is a collection of values that can be pushed to, or popped from; instructions may push values to and from the stack.\
-**Examples:**
+### Examples:
 <table>
-<tr><th>C#</th><th>IL</th></tr>
+<tr><th>C#</th><th>IL</th><th>Stack</th></tr>
 <tr>
 <td valign="top">  
 
@@ -51,16 +55,34 @@ IL_0003 call void Whatever::SomeMethod(int32, string, class Whatever.SomeType)
 ```
 
 </td>
+<td valign="top">
+
+
+```cs
+.
+(0)
+
+("Hello", 0)
+
+(SomeType, "Hello", 0)
+
+
+()
+```
+
+</td>
 </tr>
 </table>
 
 <table>
-<tr><th>C#</th><th>IL</th></tr>
+<tr><th>C#</th><th>IL</th><th>Stack</th></tr>
 <tr>
 <td valign="top">  
 
 ```cs
-var x = MathF.Sin(Main.GlobalTimeWrappedHourly);
+var x = MathF.Sin(
+    Main.GlobalTimeWrappedHourly
+);
 
 x /= 2f;
 
@@ -96,10 +118,38 @@ IL_0006 stloc 0
 ```
 
 </td>
+<td valign="top">
+
+```cs
+.
+(3911.4)
+
+
+(-0.75011...)
+
+
+()
+
+(-0.75011...)
+
+(2, -0.75011...)
+
+
+(-0.375055...)
+()
+(-0.375055...)
+(0.5, -0.375055...)
+
+
+(0.124945...)
+()
+```
+
+</td>
 </tr>
 </table>
 
-### ILCursor
+## ILCursor
 The `ILCursor` type is the standard way of manipulating `ILContext`, can be initialized directly from the `ILContext` instance provided in edits.
 `ILCursor` provides various methods for navigating the context, namely (`Try`)`GotoNext`/`Prev`and `FindNext`/`Prev`, these methods should always be used instead of manually setting `ILCursor.Index`.
 
@@ -107,7 +157,7 @@ Use `ILCursor.Emit` or `ILCursor.Emit[X]` (With `[X]` as the name of the Opcode)
 
 `ILCursor.Remove`(`Range`) removes the next instruction(s), should NOT be used for compatibility with other mods, (although context dependant.)
 
-### Targets/Labels
+## Targets/Labels
 A target/label points to a specific instruction in the context, used by Branching opcodes to move to the target.\
 `ILLabel`s can be obtained from the context by outing them from match predicates in navigation methods, or created with `ILCursor.DefineLabel`.
 ```cs
@@ -123,7 +173,7 @@ if (jumpCheckTarget is null)
 }
 ```
 When matching instructions be aware of incoming labels that point to the next instruction, use `ILCursor.MoveAfterLabels` to have the cursor redirect incoming labels to the newly emitted instruction.\
-**Example:**\
+### Example:
 Say we have the following context:
 
 <table>
@@ -176,8 +226,8 @@ You can use `ILCursor.MoveAfterLabels` to emit instructions correctly.
 > [!NOTE]
 > `MoveType.AfterLabels` is also applicable here as it acts the same as matching before the instructions and moving after labels.
 
-## Limitations
-### In-lining
+# Limitations
+## In-lining
 Certain methods, particularly smaller methods that are not decorated with `[MethodImpl(MethodImplOptions.NoInlining)]` may be inlined,
 in which methods invoking the target method will replace the target method with its body directly, unapplying any hooks.
 This manifests seemingly randomly and can differ from session to session.
@@ -189,10 +239,10 @@ On_FilterManager.CanCapture += (_, _) => true;
 // "Re-JITs" Main.DoDraw, causing the method to consider FilterManager.CanCapture with our hooks applied.
 IL_Main.DoDraw += _ => { };
 ```
-### Garbage Collection
+## Garbage Collection
 TODO
 
-## Best Practices
+# Best Practices
 - It is preferred that edits are done in static methods.
 - Edits should NOT be segregated to seperate types/files that handle specifically monomod behaviour if it can be helped.
 - Edits should be written with other mods in mind, don't be entirely reliant on long sequences of predicates matching,
@@ -210,11 +260,11 @@ TODO
   );
   ```
 
-## Simple Example
+# Simple Example
 - Outline a simple injection of custom logic into some method.
 
-## Complex Example
+# Complex Example
 - Outline injection of custom logic into some method that makes use of branching.
 
-## Debugging
+# Debugging
 - Outline common errors and what causes them.
