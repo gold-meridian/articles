@@ -5,7 +5,7 @@ tModLoader provides generated events for hooking vanilla methods (usually `On`/`
 If a method is not provided by these events you should use `MonoModHooks.Add`/`Modify`to apply hooks, (`Add` being for detours whilst `Modify` being for IL edits.)\
 Hooks applied in the manner listed above do NOT have to be unloaded manually.
 
-Although this guide is targeted at tModLoader mod developers, most information is applicable to all projects that use monomod.
+Although this guide is targeted at tModLoader mod developers, most information is applicable to all projects that use MonoMod.
 
 ## Prerequisites
 - [ILSpy](https://github.com/icsharpcode/ilspy) - Allows for browsing of disassembly, with options to show C# lines above their respective instructions.
