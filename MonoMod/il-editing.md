@@ -5,28 +5,105 @@ tModLoader provides generated events for hooking vanilla methods (usually `On`/`
 If a method is not provided by these events you should use `MonoModHooks.Add`/`Modify`to apply hooks, (`Add` being for detours whilst `Modify` being for IL edits.)\
 Hooks applied in the manner listed above do NOT have to be unloaded manually.
 
+Although this guide is targeted at tModLoader mod developers, most information is applicable to all projects that use monomod.
+
 ## Prerequisites
 - [ILSpy](https://github.com/icsharpcode/ilspy) - Allows for browsing of disassembly, with options to show C# lines above their respective instructions.
 - Familiarity with tModLoader and Terraria's codebase.
 
 ## Concepts
 ### Instructions/Opcodes
-An Operation Code (Opcode) also called an instruction, specifies what operation to preform.\
-It is vital that you understand what each Opcode does when writing edits, ILSpy gives a tooltip when hovering an instruction and will open documentation when clicked.\
-<img src="ILSpyTooltip.png">
+An Operation Code (Opcode) also called an instruction, specifies what operation to preform.
+
+> [!IMPORTANT]
+> It is vital that you understand what each Opcode does when writing edits, ILSpy gives a tooltip when hovering an instruction and will open documentation when clicked.\
+> <img src="ILSpyTooltip.png">
 
 ### The Stack
 The stack is a collection of values that can be pushed to, or popped from; instructions may push values to and from the stack.\
-TODO:
-  - Better outline how this can be manipulated?
-  - Better explain this in general as it is a particularly abstract concept
+**Examples:**
+<table>
+<tr><th>C#</th><th>IL</th></tr>
+<tr>
+<td valign="top">  
+
+```cs
+Whatever.SomeMethod(
+    0,
+    "Hello",
+    new SomeType()
+);
+```
+
+</td>
+<td valign="top">
+
+```c#
+// Load 0 onto the stack
+IL_0000 ldc.i4.0
+// Load the string "Hello" onto the stack
+IL_0001 ldstr "Hello"
+// Creates a new object of SomeType, and pushes it to the stack
+IL_0002 newobj instance void Whatever.SomeType::.ctor()
+// Calls the static method SomeMethod and pops
+// the arguments off of the stack
+IL_0003 call void Whatever::SomeMethod(int32, string, class Whatever.SomeType)
+```
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr><th>C#</th><th>IL</th></tr>
+<tr>
+<td valign="top">  
+
+```cs
+var x = MathF.Sin(Main.GlobalTimeWrappedHourly);
+
+x /= 2f;
+
+x += 0.5;
+```
+
+</td>
+<td valign="top">
+
+```c#
+// Loads the static field Main.GlobalTimeWrappedHourly
+IL_0000 ldsfld float32 Main::GlobalTimeWrappedHourly
+// Pops the top value off of the stack to MathF.Sin
+// and pushes the output to the stack
+IL_0001 call float32 MathF::Sin(float32)
+// Pushes the current value on the stack to the
+// local 'x' represented by the index 0
+IL_0002 stloc 0
+// Loads the local at index 0
+IL_0003 ldloc 0
+// Load a float32 with the value 2 onto the stack
+IL_0004 ldc.r4 2
+// Divides the 2nd value on the stack by the top value
+// popping them and pushing the result
+IL_0005 div
+IL_0006 stloc 0
+IL_0003 ldloc 0
+IL_0004 ldc.r4 0.5
+// Adds the top value on the stack to the 2nd value
+// popping them and pushing the result
+IL_0005 add
+IL_0006 stloc 0
+```
+
+</td>
+</tr>
+</table>
 
 ### ILCursor
 The `ILCursor` type is the standard way of manipulating `ILContext`, can be initialized directly from the `ILContext` instance provided in edits.
 `ILCursor` provides various methods for navigating the context, namely (`Try`)`GotoNext`/`Prev`and `FindNext`/`Prev`, these methods should always be used instead of manually setting `ILCursor.Index`.
 
 Use `ILCursor.Emit` or `ILCursor.Emit[X]` (With `[X]` as the name of the Opcode) to insert an instruction at the index of the cursor, this will move the cursor after the emitted instruction as well.
-`ILCursor.EmitDelegate` will emit a call to the passed delegate, useful for having relevant code be in-line with the surrounding edit.
 
 `ILCursor.Remove`(`Range`) removes the next instruction(s), should NOT be used for compatibility with other mods, (although context dependant.)
 
@@ -50,14 +127,7 @@ When matching instructions be aware of incoming labels that point to the next in
 Say we have the following context:
 
 <table>
-<tr>
-<th>
-C#
-</th>
-<th>
-IL
-</td>
-</tr>
+<tr><th>C#</th><th>IL</th></tr>
 <tr>
 <td valign="top">  
 
@@ -75,7 +145,7 @@ Whatever.CoolMultipleArgMethod(0, 1, 2);
 
 ```
 // if (Whatever.SomeStaticBool)
-IL_0000 ldsfld Whatever::SomeStaticBool
+IL_0000 ldsfld bool Whatever::SomeStaticBool
 IL_0001 brfalse IL_0003
 
 // Whatever.Cool0ArgMethod();
@@ -85,7 +155,7 @@ IL_0002 call void Whatever::Cool0ArgMethod()
 IL_0003 ldc.i4.0 
 IL_0004 ldc.i4.1
 IL_0005 ldc.i4 2
-IL_0006 call void Whatever::CoolMultipleArgMethod(Int32, Int32, Int32)
+IL_0006 call void Whatever::CoolMultipleArgMethod(int32, int32, int32)
 ```
 
 </td>
@@ -102,6 +172,9 @@ c.GotoNext(
 ```
 we would be placed before `IL_0003`, but any newly emitted instructions would be placed before the label, you can think of this as us emitting inside the `if` statement.
 You can use `ILCursor.MoveAfterLabels` to emit instructions correctly.
+
+> [!NOTE]
+> `MoveType.AfterLabels` is also applicable here as it acts the same as matching before the instructions and moving after labels.
 
 ## Limitations
 ### In-lining
