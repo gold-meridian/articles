@@ -240,7 +240,28 @@ On_FilterManager.CanCapture += (_, _) => true;
 IL_Main.DoDraw += _ => { };
 ```
 ## Garbage Collection
-TODO
+The `On_`/`IL_` events tModLoader generates hold their own strong references internally, so subscribing to them is safe and does not require you to keep anything alive yourself.
+
+If instead you apply a hook manually, e.g. via `new ILHook(...)` or `MonoModHooks.Modify`, the returned handle is what keeps the patch alive. If you don't store that handle somewhere that outlives the method call that created it (a local variable, for example), nothing is left referencing it which means the garbage collector is free to collect it, and your edit silently stops applying while the game keeps running. This is especially deceptive because it doesn't throw or log anything, as if the hook was never applied.
+
+To avoid this, store the hook in a `static` field for the lifetime of your mod, and dispose it in `Unload` if you didn't use the generated `On_`/`IL_` events.
+```cs
+private static ILHook manualHook;
+
+public static void Load()
+{
+    manualHook = new ILHook(
+        typeof(Whatever).GetMethod("SomeMethod"),
+        Whatever_SomeMethod
+    );
+}
+
+public static void Unload()
+{
+    manualHook?.Dispose();
+    manualHook = null;
+}
+```
 
 # Best Practices
 - It is preferred that edits are done in static methods.
