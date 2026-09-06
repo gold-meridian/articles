@@ -299,10 +299,10 @@ private void DoubleHeartLanternRegen(ILContext il)
 {
     var c = new ILCursor(il);
 
-    // anchor on the heart lantern check, not on the number itself
+    // anchor on the heart lantern check, not on the number itself, we make the call here
     c.GotoNext(
         MoveType.After,
-        i => i.MatchCallvirt<SceneMetrics>("get_HasHeartLantern")
+        i => i.MatchCallvirt<SceneMetrics>("get_HasHeartLantern") 
     );
 
     // now the next ldc.i4 2 is unambiguously the one this block adds
@@ -317,10 +317,10 @@ private void DoubleHeartLanternRegen(ILContext il)
     // Stack: (lifeRegen, 4)
 }
 ```
-Heart Lanterns now give +4 instead of +2 — lifeRegen is in half-HP per second, so +1 HP/s instead of +0.5 HP/s.
+Heart Lanterns now give +4 instead of +2 —— lifeRegen is in half-HP per second, so +1 HP/s instead of +0.5 HP/s.
 
 We're using `GotoNext` here not `TryGotoNext`, if the match fails (e.g. another mod already changed this method's shape) it throws, letting the edit fail.
-Note the `Try` prefix on `GotoNext`, unlike the plain `GotoNext`/`FindNext` methods, `TryGotoNext` returns a `bool` giving an indication instead of throwing, letting you cancel the edit and log why if the match fails.\
+Note the `Try` prefix on `GotoNext`, unlike the plain `GotoNext`/`FindNext` methods, `TryGotoNext` returns a `bool` giving an indication instead of throwing, letting you cancel the edit and log why if the match fails.
 
 # Complex Example
 - Outline injection of custom logic into some method that makes use of branching.
