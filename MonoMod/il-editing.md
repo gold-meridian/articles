@@ -282,7 +282,32 @@ public static void Unload()
   ```
 
 # Simple Example
-- Outline a simple injection of custom logic into some method.
+Say we want to double the value of a hardcoded cap inside `Player.UpdateLifeRegen`, without touching anything else about the method.\
+First, find the instruction loading the constant using ILSpy as we have mentioned earlier, then match it with `ILCursor` and emit a multiplication right after it.
+```cs
+public override void Load()
+{
+    IL_Player.UpdateLifeRegen += Player_UpdateLifeRegen;
+}
+
+private void Player_UpdateLifeRegen(ILContext il)
+{
+    var c = new ILCursor(il);
+
+    // Find the vanilla life regen cap of 20 and move just after it.
+    c.GotoNext(
+        MoveType.After,
+        i => i.MatchLdcI4(20)
+    );
+
+    // Stack: (20)
+    c.EmitLdcI4(2);
+    c.EmitMul();
+    // Stack: (40)
+}
+```
+We're using `GotoNext` here not `TryGotoNext`, if the match fails (e.g. another mod already changed this method's shape) it throws, letting the edit fail.
+Note the `Try` prefix on `GotoNext`, unlike the plain `GotoNext`/`FindNext` methods, `TryGotoNext` returns a `bool` giving an indication instead of throwing, letting you cancel the edit and log why if the match fails.\
 
 # Complex Example
 - Outline injection of custom logic into some method that makes use of branching.
