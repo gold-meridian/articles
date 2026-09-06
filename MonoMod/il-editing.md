@@ -290,11 +290,6 @@ public override void Load()
     IL_Player.UpdateLifeRegen += DoubleHeartLanternRegen;
 }
 
-public override void Unload()
-{
-    IL_Player.UpdateLifeRegen -= DoubleHeartLanternRegen;
-}
-
 private void DoubleHeartLanternRegen(ILContext il)
 {
     var c = new ILCursor(il);
