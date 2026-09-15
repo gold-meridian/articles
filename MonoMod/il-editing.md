@@ -282,8 +282,32 @@ public static void Unload()
   ```
 
 # Simple Example
-Say we want to double the value of a hardcoded cap inside `Player.UpdateLifeRegen`, without touching anything else about the method.\
-First, find the instruction loading the constant using ILSpy as we have mentioned earlier, then match it with `ILCursor` and emit a multiplication right after it.
+Say we want to double the Heart Lantern's life regen bonus inside `Player.UpdateLifeRegen`, without touching anything else about the method.
+
+Open `tModLoader.dll` in ILSpy, find `Terraria.Player.UpdateLifeRegen`, and locate this block in the decompiled C#:
+```cs
+if (whoAmI == Main.myPlayer && Main.SceneMetrics.HasHeartLantern)
+{
+    lifeRegen += 2;
+}
+```
+Then switch ILSpy's language dropdown from C# to IL to see what that part actually compiles to (from tModLoader 1.4.4.9; they may change between versions):
+```il
+IL_0488: ldarg.0
+IL_0489: ldfld int32 Terraria.Entity::whoAmI
+IL_048e: ldsfld int32 Terraria.Main::myPlayer
+IL_0493: bne.un.s IL_04af
+IL_0495: ldsfld class Terraria.SceneMetrics Terraria.Main::SceneMetrics
+IL_049a: callvirt instance bool Terraria.SceneMetrics::get_HasHeartLantern()   //  anchor here
+IL_049f: brfalse.s IL_04af
+IL_04a1: ldarg.0
+IL_04a2: ldarg.0
+IL_04a3: ldfld int32 Terraria.Player::lifeRegen
+IL_04a8: ldc.i4.2                                                               // then here
+IL_04a9: add
+IL_04aa: stfld int32 Terraria.Player::lifeRegen
+```
+The `ldc.i4.2` at `IL_04a8` is the number we want to double. But we can't match on it directly: ldc.i4.2 appears more than once in this method, and GotoNext takes the first one. So we anchor on something unique first. get_HasHeartLantern is called exactly once in UpdateLifeRegen, and a method reference holds up through vanilla updates and other mod edits far better than a bare constant does.
 ```cs
 public override void Load()
 {
@@ -294,13 +318,13 @@ private void DoubleHeartLanternRegen(ILContext il)
 {
     var c = new ILCursor(il);
 
-    // anchor on the heart lantern check, not on the number itself, we make the call here
+    // anchor the edit on the heart lantern check, not on the number
     c.GotoNext(
         MoveType.After,
-        i => i.MatchCallvirt<SceneMetrics>("get_HasHeartLantern") 
+        i => i.MatchCallvirt<SceneMetrics>("get_HasHeartLantern")
     );
 
-    // now the next ldc.i4 2 is unambiguously the one this block adds
+    // now the next ldc.i4 2 is the one this block adds
     c.GotoNext(
         MoveType.After,
         i => i.MatchLdcI4(2)
@@ -312,10 +336,16 @@ private void DoubleHeartLanternRegen(ILContext il)
     // Stack: (lifeRegen, 4)
 }
 ```
-Heart Lanterns now give +4 instead of +2 —— lifeRegen is in half-HP per second, so +1 HP/s instead of +0.5 HP/s.
-
-We're using `GotoNext` here not `TryGotoNext`, if the match fails (e.g. another mod already changed this method's shape) it throws, letting the edit fail.
-Note the `Try` prefix on `GotoNext`, unlike the plain `GotoNext`/`FindNext` methods, `TryGotoNext` returns a `bool` giving an indication instead of throwing, letting you cancel the edit and log why if the match fails.
+Here's the IL post patch block:
+```il
+IL_04a3: ldfld int32 Terraria.Player::lifeRegen
+IL_04a8: ldc.i4.2
+         ldc.i4 2     // ours
+         mul          // also ours
+IL_04a9: add
+IL_04aa: stfld int32 Terraria.Player::lifeRegen
+```
+Heart Lanterns now give +4 regen instead of +2. Every 2 points of lifeRegen heals 1 HP per second, so that's 2 HP/s instead of 1 HP/s.
 
 # Complex Example
 - Outline injection of custom logic into some method that makes use of branching.
