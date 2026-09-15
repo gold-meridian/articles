@@ -42,7 +42,7 @@ Whatever.SomeMethod(
 </td>
 <td valign="top">
 
-```cs
+```il
 // Load 0 onto the stack
 IL_0000 ldc.i4.0
 // Load the string "Hello" onto the stack
@@ -92,7 +92,7 @@ x += 0.5;
 </td>
 <td valign="top">
 
-```cs
+```il
 // Loads the static field Main.GlobalTimeWrappedHourly
 IL_0000 ldsfld float32 Main::GlobalTimeWrappedHourly
 // Pops the top value off of the stack to MathF.Sin
@@ -193,7 +193,7 @@ Whatever.CoolMultipleArgMethod(0, 1, 2);
 </td>
 <td valign="top">
 
-```cs
+```il
 // if (Whatever.SomeStaticBool)
 IL_0000 ldsfld bool Whatever::SomeStaticBool
 IL_0001 brfalse IL_0003
