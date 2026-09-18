@@ -311,20 +311,20 @@ The `ldc.i4.2` at `IL_04a8` is the number we want to double. But we can't match 
 ```cs
 public override void Load()
 {
-    IL_Player.UpdateLifeRegen += DoubleHeartLanternRegen;
+    IL_Player.UpdateLifeRegen += UpdateLifeRegen_DoubleHeartLanternRegen;
 }
 
-private void DoubleHeartLanternRegen(ILContext il)
+private static void UpdateLifeRegen_DoubleHeartLanternRegen(ILContext il)
 {
     var c = new ILCursor(il);
 
-    // anchor the edit on the heart lantern check, not on the number
+    // anchor on the heart lantern check itself
     c.GotoNext(
         MoveType.After,
-        i => i.MatchCallvirt<SceneMetrics>("get_HasHeartLantern")
+        i => i.MatchCallvirt<SceneMetrics>($"get_{nameof(SceneMetrics.HasHeartLantern)}")
     );
 
-    // now the next ldc.i4 2 is the one this block adds
+    // now the next ldc.i4 2 is the one this block will add
     c.GotoNext(
         MoveType.After,
         i => i.MatchLdcI4(2)
