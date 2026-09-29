@@ -397,7 +397,7 @@ private static void UpdateLifeRegen_DoubleHeartLanternRegen(ILContext il)
 
     c.GotoNext(
         MoveType.After,
-        // ldfld int32 Terraria.Player::lifeRegen
+        // ldarg.0
         i => i.MatchLdarg(out playerIndex),
         // ldfld int32 Terraria.Player::lifeRegen
         i => i.MatchLdfld<Player>(nameof(Player.lifeRegen))
@@ -406,7 +406,7 @@ private static void UpdateLifeRegen_DoubleHeartLanternRegen(ILContext il)
     c.GotoNext(
         MoveType.After,
         // ldc.i4.2
-        i => i.MatchLdcI4(out _)
+        i => i.MatchLdcI4(2)
     );
 
     // Stack: (lifeRegen, 2)
