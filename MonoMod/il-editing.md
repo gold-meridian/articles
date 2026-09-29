@@ -44,14 +44,14 @@ Whatever.SomeMethod(
 
 ```il
 // Load 0 onto the stack
-IL_0000 ldc.i4.0
+IL_0000: ldc.i4.0
 // Load the string "Hello" onto the stack
-IL_0001 ldstr "Hello"
+IL_0001: ldstr "Hello"
 // Creates a new object of SomeType, and pushes it to the stack
-IL_0002 newobj instance void Whatever.SomeType::.ctor()
+IL_0002: newobj instance void Whatever.SomeType::.ctor()
 // Calls the static method SomeMethod and pops
 // the arguments off of the stack
-IL_0003 call void Whatever::SomeMethod(int32, string, class Whatever.SomeType)
+IL_0003: call void Whatever::SomeMethod(int32, string, class Whatever.SomeType)
 ```
 
 </td>
@@ -94,27 +94,27 @@ x += 0.5;
 
 ```il
 // Loads the static field Main.GlobalTimeWrappedHourly
-IL_0000 ldsfld float32 Main::GlobalTimeWrappedHourly
+IL_0000: ldsfld float32 Main::GlobalTimeWrappedHourly
 // Pops the top value off of the stack to MathF.Sin
 // and pushes the output to the stack
-IL_0001 call float32 MathF::Sin(float32)
+IL_0001: call float32 MathF::Sin(float32)
 // Pushes the current value on the stack to the
 // local 'x' represented by the index 0
-IL_0002 stloc 0
+IL_0002: stloc 0
 // Loads the local at index 0
-IL_0003 ldloc 0
+IL_0003: ldloc 0
 // Load a float32 with the value 2 onto the stack
-IL_0004 ldc.r4 2
+IL_0004: ldc.r4 2
 // Divides the 2nd value on the stack by the top value
 // popping them and pushing the result
-IL_0005 div
-IL_0006 stloc 0
-IL_0003 ldloc 0
-IL_0004 ldc.r4 0.5
+IL_0005: div
+IL_0006: stloc 0
+IL_0003: ldloc 0
+IL_0004: ldc.r4 0.5
 // Adds the top value on the stack to the 2nd value
 // popping them and pushing the result
-IL_0005 add
-IL_0006 stloc 0
+IL_0005: add
+IL_0006: stloc 0
 ```
 
 </td>
@@ -195,25 +195,25 @@ Whatever.CoolMultipleArgMethod(0, 1, 2);
 
 ```il
 // if (Whatever.SomeStaticBool)
-IL_0000 ldsfld bool Whatever::SomeStaticBool
-IL_0001 brfalse IL_0003
+IL_0000: ldsfld bool Whatever::SomeStaticBool
+IL_0001: brfalse IL_0003
 
 // Whatever.Cool0ArgMethod();
-IL_0002 call void Whatever::Cool0ArgMethod()
+IL_0002: call void Whatever::Cool0ArgMethod()
 
 // Whatever.CoolMultipleArgMethod(0, 1, 2);
-IL_0003 ldc.i4.0 
-IL_0004 ldc.i4.1
-IL_0005 ldc.i4 2
-IL_0006 call void Whatever::CoolMultipleArgMethod(int32, int32, int32)
+IL_0003: ldc.i4.0 
+IL_0004: ldc.i4.1
+IL_0005: ldc.i4 2
+IL_0006: call void Whatever::CoolMultipleArgMethod(int32, int32, int32)
 ```
 
 </td>
 </tr>
 </table>
 
-Note the incoming label on `IL_0003`.
-If we were to match like so:
+Note the incoming label on `IL_0003`,
+if we were to match like so:
 ```cs
 c.GotoNext(
     MoveType.Before,
@@ -224,7 +224,7 @@ we would be placed before `IL_0003`, but any newly emitted instructions would be
 You can use `ILCursor.MoveAfterLabels` to emit instructions correctly.
 
 > [!NOTE]
-> `MoveType.AfterLabels` is also applicable here as it acts the same as matching before the instructions and moving after labels.
+> `MoveType.AfterLabels` is also applicable here as it acts the same as matching before the instructions and moving after labels, but may hinder readability.
 
 # Limitations
 ## In-lining
@@ -244,7 +244,7 @@ The `On_`/`IL_` events tModLoader generates hold their own strong references int
 
 If instead you apply a hook manually, e.g. via `new ILHook(...)` or `MonoModHooks.Modify`, the returned handle is what keeps the patch alive. If you don't store that handle somewhere that outlives the method call that created it (a local variable, for example), nothing is left referencing it which means the garbage collector is free to collect it, and your edit silently stops applying while the game keeps running. This is especially deceptive because it doesn't throw or log anything, as if the hook was never applied.
 
-To avoid this, store the hook in a `static` field for the lifetime of your mod, and dispose it in `Unload` if you didn't use the generated `On_`/`IL_` events.
+To avoid this, store the hook in a `static` field for the lifetime of your mod, and dispose it in `Unload` if you didn't use the generated `On_`/`IL_` events or `MonoModHooks`.
 ```cs
 private static ILHook manualHook;
 
@@ -265,9 +265,10 @@ public static void Unload()
 
 # Best Practices
 - It is preferred that edits are done in static methods.
-- Edits should NOT be segregated to seperate types/files that handle specifically monomod behaviour if it can be helped.
-- Edits should be written with other mods in mind, don't be entirely reliant on long sequences of predicates matching,
-  and instructions should not be removed as other mods may rely on them for their own matching.
+- Use `MonoModHooks` for edits that TML does not provide hooks for.
+- Edits should NOT be segregated to separate types/files that handle specifically MonoMod behavior if it can be helped.
+- Edits should be written with other mods in mind, do not be entirely reliant on long sequences of predicates matching as other mods may modify instructions;
+  even single instructions should not be removed as other mods may rely on them.
 - Opt for handling large logic inside calls or delegates instead of emitting the entire method body manually.
 - When emitting instructions pertaining to locals/arguments, you should prefer grabbing the index of the local/argument from the context similarly to labels.
   ```cs
@@ -291,23 +292,30 @@ if (whoAmI == Main.myPlayer && Main.SceneMetrics.HasHeartLantern)
     lifeRegen += 2;
 }
 ```
-Then switch ILSpy's language dropdown from C# to IL to see what that part actually compiles to (from tModLoader 1.4.4.9; they may change between versions):
+Then switch ILSpy's language drop-down from C# to IL to see what that part actually compiles to:
 ```il
 IL_0488: ldarg.0
 IL_0489: ldfld int32 Terraria.Entity::whoAmI
 IL_048e: ldsfld int32 Terraria.Main::myPlayer
 IL_0493: bne.un.s IL_04af
 IL_0495: ldsfld class Terraria.SceneMetrics Terraria.Main::SceneMetrics
-IL_049a: callvirt instance bool Terraria.SceneMetrics::get_HasHeartLantern()   //  anchor here
+IL_049a: callvirt instance bool Terraria.SceneMetrics::get_HasHeartLantern()
 IL_049f: brfalse.s IL_04af
 IL_04a1: ldarg.0
 IL_04a2: ldarg.0
 IL_04a3: ldfld int32 Terraria.Player::lifeRegen
-IL_04a8: ldc.i4.2                                                               // then here
+IL_04a8: ldc.i4.2
 IL_04a9: add
 IL_04aa: stfld int32 Terraria.Player::lifeRegen
 ```
-The `ldc.i4.2` at `IL_04a8` is the number we want to double. But we can't match on it directly: ldc.i4.2 appears more than once in this method, and GotoNext takes the first one. So we anchor on something unique first. get_HasHeartLantern is called exactly once in UpdateLifeRegen, and a method reference holds up through vanilla updates and other mod edits far better than a bare constant does.
+> [!NOTE]
+> Above context is from tModLoader 1.4.4.9; context may change between versions!
+
+The `ldc.i4.2` at `IL_04a8` is the number we want to double.
+But we cannot match to it directly, `ldc.i4.2`, and similar instructions appear more than once in this method, using `GotoNext` will only match to the fist instance;
+so we match to a unique instruction near the target:\
+`SceneMetrics::get_HasHeartLantern` is called exactly once in `UpdateLifeRegen`, and a method reference holds up through vanilla updates and other mod's edits far better than a bare constant does.
+
 ```cs
 public override void Load()
 {
@@ -318,34 +326,106 @@ private static void UpdateLifeRegen_DoubleHeartLanternRegen(ILContext il)
 {
     var c = new ILCursor(il);
 
-    // anchor on the heart lantern check itself
+    // Anchor on the heart lantern check itself
     c.GotoNext(
         MoveType.After,
+        // callvirt instance bool Terraria.SceneMetrics::get_HasHeartLantern()
         i => i.MatchCallvirt<SceneMetrics>($"get_{nameof(SceneMetrics.HasHeartLantern)}")
     );
 
-    // now the next ldc.i4 2 is the one this block will add
+    // Match to the next instance of ldc.i4.2
     c.GotoNext(
         MoveType.After,
+        // ldc.i4.2
         i => i.MatchLdcI4(2)
     );
+    /*
+    * Alternatively:
+
+    * Match closer to the target
+    c.GotoNext(
+        MoveType.After,
+        // ldfld int32 Terraria.Player::lifeRegen
+        i => i.MatchLdfld<Player>(nameof(Player.lifeRegen))
+    );
+
+    * Fuzzy match for the next ldc.i4 instruction, could also be used to out its value for reuse
+    c.GotoNext(
+        MoveType.After,
+        // ldc.i4.2
+        i => i.MatchLdcI4(out _)
+    );
+    */
 
     // Stack: (lifeRegen, 2)
     c.EmitLdcI4(2);
+    // Stack: (lifeRegen, 2, 2)
     c.EmitMul();
     // Stack: (lifeRegen, 4)
 }
 ```
-Here's the IL post patch block:
+
+Here's what the context may look like following the patch:
 ```il
 IL_04a3: ldfld int32 Terraria.Player::lifeRegen
 IL_04a8: ldc.i4.2
-         ldc.i4 2     // ours
-         mul          // also ours
+IL_XXXX: ldc.i4 2
+IL_XXXX: mul
 IL_04a9: add
 IL_04aa: stfld int32 Terraria.Player::lifeRegen
 ```
+
 Heart Lanterns now give +4 regen instead of +2. Every 2 points of lifeRegen heals 1 HP per second, so that's 2 HP/s instead of 1 HP/s.
+
+Now say you want to make this effect conditional, based on some value in a `ModPlayer` for instance.
+You would need to grab the player instance from the context, then pass it into a custom method.
+This can be achieved by emitting `ldarg.0` (as the player instance is the first argument of the method) then using `EmitDelegate` or `EmitCall`:
+```cs
+private static void UpdateLifeRegen_DoubleHeartLanternRegen(ILContext il)
+{
+    var c = new ILCursor(il);
+
+    // In some cases (particularly with locals) it may be preferable to fetch the index from the context,
+    // although in cases where the index is known (particularly in instance methods) you can omit doing this
+    var playerIndex = -1; // arg
+
+    c.GotoNext(
+        MoveType.After,
+        // callvirt instance bool Terraria.SceneMetrics::get_HasHeartLantern()
+        i => i.MatchCallvirt<SceneMetrics>($"get_{nameof(SceneMetrics.HasHeartLantern)}")
+    );
+
+    c.GotoNext(
+        MoveType.After,
+        // ldfld int32 Terraria.Player::lifeRegen
+        i => i.MatchLdarg(out playerIndex),
+        // ldfld int32 Terraria.Player::lifeRegen
+        i => i.MatchLdfld<Player>(nameof(Player.lifeRegen))
+    );
+
+    c.GotoNext(
+        MoveType.After,
+        // ldc.i4.2
+        i => i.MatchLdcI4(out _)
+    );
+
+    // Stack: (lifeRegen, 2)
+    c.EmitLdarg(playerIndex);
+    // Stack: (lifeRegen, 2, Player)
+    c.EmitDelegate(
+        static (int regen, PLayer player) =>
+        {
+            if (!player.GetModPlayer<HeartLanternBuffPlayer>().HeartLanternBuff)
+            {
+                return regen;
+            }
+
+            return regen * 2;
+        }
+    );
+    // Stack: (lifeRegen, 4)
+}
+```
 
 # Complex Example
 - Outline injection of custom logic into some method that makes use of branching.
